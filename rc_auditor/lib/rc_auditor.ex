@@ -1,2 +1,0 @@
-defmodule RcAuditor do
-end
