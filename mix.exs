@@ -14,7 +14,7 @@ defmodule RcAuditor.Mixfile do
   #
   # Type "mix help compile.app" for more information
   def application do
-    [applications: [:logger]]
+    [applications: [:logger, :httpoison]]
   end
 
   # Dependencies can be Hex packages:
@@ -27,6 +27,8 @@ defmodule RcAuditor.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    []
+    [
+      {:jira, git: "https://github.com/jeffweiss/jira", tag: "0.0.8"}
+    ]
   end
 end
