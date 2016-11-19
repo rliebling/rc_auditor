@@ -15,6 +15,15 @@ defmodule RcAuditor.CLI do
     """
     System.halt(0)
   end
+  def process({rc_ticket_id, project}) do
+    RcAuditor.Jira.fetch(rc_ticket_id)
+    |> RcAuditor.Jira.child_tickets
+    |> Stream.filter(&RcAuditor.Jira.not_qa_approved/1)
+    |> Stream.map( fn t -> t["key"] end)
+    |> Enum.to_list
+    |> inspect(pretty: true)
+    |> IO.puts
+  end
 
   @doc """
   `argv` can be -h or --help, which returns :help.
