@@ -26,24 +26,11 @@ defmodule RcAuditor.Jira do
     end
   end
 
-  defp transitions( %{"changelog" => %{ "histories" => histories}}) do
-    histories
-    |> Enum.map(fn h -> h["items"] end)
-    |> List.flatten
-    |> Enum.filter(fn i -> i["field"] == "status" end)
-  end
-
   def is_qa_approval?(%{"field"=>"status", "toString"=>"Approved for RC"}) do
     true
   end
   def is_qa_approval?(_), do: false
 
-  def not_qa_approved(ticket) do
-    !(ticket
-    |> transitions
-    |> Enum.any?(&is_qa_approval?/1)
-    )
-  end
 
   def annotate_qa_approval(ticket) do
     Map.put ticket, "qa_approval", qa_approval(ticket)
