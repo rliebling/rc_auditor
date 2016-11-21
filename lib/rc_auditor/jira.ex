@@ -30,6 +30,12 @@ defmodule RcAuditor.Jira do
   end
   def is_qa_approval?(_), do: false
 
+  def status_name(t) do
+    get_in(t, ["fields","status","name"])
+  end
+  def summary(t) do
+    get_in(t, ["fields","summary"])
+  end
 
   def annotate_qa_approval(ticket) do
     Map.put ticket, "qa_approval", qa_approval(ticket)

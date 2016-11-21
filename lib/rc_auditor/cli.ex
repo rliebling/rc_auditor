@@ -19,7 +19,7 @@ defmodule RcAuditor.CLI do
     RcAuditor.Jira.fetch(rc_ticket_id)
     |> RcAuditor.Jira.child_tickets
     |> Stream.map(&RcAuditor.Jira.annotate_qa_approval/1)
-    |> Stream.map( fn t -> [t["key"], t["qa_approval"]] end)
+    |> Stream.map( fn t -> [t["key"], t["qa_approval"], RcAuditor.Jira.status_name(t), RcAuditor.Jira.summary(t)] end)
     |> Enum.to_list
     |> inspect(pretty: true)
     |> IO.puts
