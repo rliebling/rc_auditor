@@ -14,13 +14,13 @@ defmodule RcAuditor.Jira do
     |> Stream.map( fn k -> fetch(k, :changelog) end)
   end
 
-  defp qa_approval( %{"changelog" => %{ "histories" => histories}}) do
+  defp approval( %{"changelog" => %{ "histories" => histories}}, label, filter) do
     h = histories
         |> Enum.filter(fn h->
                          h["items"]
-                         |> Enum.any?(&is_qa_approval?/1)
+                         |> Enum.any?(filter)
                        end)
-        |> Enum.map(fn a-> %Approval{approver: a["author"]["displayName"],
+        |> Enum.map(fn a-> %Approval{stage: label, approver: a["author"]["displayName"],
                                      approved_at: a["created"]}
                     end)
   end
@@ -29,6 +29,10 @@ defmodule RcAuditor.Jira do
     true
   end
   def is_qa_approval?(_), do: false
+  def is_cr_approval?(%{"field"=>"status", "toString"=>"Ready for QA"}) do
+    true
+  end
+  def is_cr_approval?(_), do: false
 
   def status_name(t) do
     get_in(t, ["fields","status","name"])
@@ -38,7 +42,11 @@ defmodule RcAuditor.Jira do
   end
 
   def annotate_qa_approval(ticket) do
-    Map.put ticket, "qa_approval", qa_approval(ticket)
+    Map.put ticket, "qa_approval", approval(ticket, "QA", &is_qa_approval?/1)
+  end
+
+  def annotate_cr_approval(ticket) do
+    Map.put ticket, "cr_approval", approval(ticket, "CR", &is_cr_approval?/1)
   end
 
   defp is_child( %{"type" => %{"inward" => "child of"}, "outwardIssue"=>issue}) do

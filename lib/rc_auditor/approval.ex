@@ -1,3 +1,3 @@
 defmodule Approval do
-  defstruct approver: "", approved_at: nil, link: nil
+  defstruct stage: "", approver: "", approved_at: nil, link: nil
 end
