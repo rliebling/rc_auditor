@@ -11,15 +11,16 @@ defmodule RcAuditor.CLI do
 
   def process(:help) do
     IO.puts """
-    usage: rc_auditor <rc_ticket_id> <project>
+    usage: rc_auditor <rc_ticket_id> <repo_owner> <repo_name>
     """
     System.halt(0)
   end
-  def process({rc_ticket_id, project}) do
+  def process({rc_ticket_id, repo_owner, repo_name}) do
     RcAuditor.Jira.fetch(rc_ticket_id)
     |> RcAuditor.Jira.child_tickets
     |> Stream.map(&RcAuditor.Jira.annotate_qa_approval/1)
     |> Stream.map(&RcAuditor.Jira.annotate_cr_approval/1)
+    |> Stream.map(&(RcAuditor.Github.annotate_pull_request(&1, repo_owner, repo_name)))
     |> Stream.map(&presentation/1)
     |> Enum.to_list
     |> inspect(pretty: true)
@@ -38,8 +39,8 @@ defmodule RcAuditor.CLI do
 
   @doc """
   `argv` can be -h or --help, which returns :help.
-  Otherwise it is a Jira ticket ID, project name
-  Return a tuple of `{ ticket_id, project }`, or `:help` if help was given.
+  Otherwise it is a Jira ticket ID, repo_owner, repo_name
+  Return a tuple of `{ ticket_id, repo_owner, repo_name }`, or `:help` if help was given.
   """
   def parse_args(argv) do
     parse = OptionParser.parse(argv, switches: [ help: :boolean],
@@ -49,8 +50,8 @@ defmodule RcAuditor.CLI do
     case parse do
       { [ help: true ], _, _ }
         -> :help
-      { _, [ ticket_id, project ], _ }
-        -> { ticket_id, project }
+      { _, [ ticket_id, repo_owner, repo_name ], _ }
+        -> { ticket_id, repo_owner, repo_name }
       _ -> :help
     end
   end

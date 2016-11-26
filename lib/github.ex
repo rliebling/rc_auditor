@@ -87,6 +87,12 @@ defmodule RcAuditor.Github do
       }
   end
 
+  def annotate_pull_request(ticket, repo_owner, repo_name) do
+    key = ticket["key"]
+    Map.put ticket, "PR", find_prs_for_ticket(key)
+    ticket
+  end
+
   def pull_requests(repo_owner, repo_name) do
     Stream.resource(
                     fn -> fetch_with_cursor(pr_cursor(repo_owner,repo_name)) end,
