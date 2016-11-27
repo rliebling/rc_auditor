@@ -30,7 +30,7 @@ defmodule RcAuditor.GithubPRMap do
     raise "No more PRs to fetch.  #{key} not found"
   end
   defp fetch_next_page(state, key) do
-    IO.puts "PRMap: fetching a page cursor=#{state.cursor}"
+    IO.puts :stderr, "PRMap: fetching a page cursor=#{inspect(state.cursor)}"
     {prs, new_cursor} = Github.pull_requests(state.repo_owner, state.repo_name, state.cursor)
     new_map = Enum.reduce(prs,
                           state.map,

@@ -19,6 +19,8 @@ defmodule RcAuditor.CLI do
     {:ok, ghmap} = RcAuditor.GithubPRMap.start_link(repo_owner, repo_name)
     RcAuditor.Jira.fetch(rc_ticket_id)
     |> RcAuditor.Jira.child_tickets
+    |> Stream.map(fn t->IO.puts(:stderr, t["key"]); t end)
+    |> Stream.filter(fn t-> same_project?(t["key"], rc_ticket_id) end)
     |> Stream.map(&RcAuditor.Jira.annotate_qa_approval/1)
     |> Stream.map(&RcAuditor.Jira.annotate_cr_approval/1)
     |> Stream.map(&(RcAuditor.Github.annotate_pull_request(&1, ghmap)))
@@ -28,13 +30,18 @@ defmodule RcAuditor.CLI do
     |> IO.puts
   end
 
+  defp same_project?(key1, key2) do
+    Regex.run(~r/[A-Z]+-/, key1) == Regex.run(~r/[A-Z]+-/, key2)
+  end
+
   defp presentation(t) do
     [
       t["key"],
       RcAuditor.Jira.status_name(t),
       RcAuditor.Jira.summary(t),
       t["cr_approval"],
-      t["qa_approval"]
+      t["qa_approval"],
+      t["gh_approval"]
     ]
   end
 

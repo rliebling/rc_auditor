@@ -65,6 +65,22 @@ defmodule RcAuditor.Github do
                   login
                 }
                 id
+                reviews(last: 30, states: APPROVED) {
+                  edges {
+                    node {
+                      author {
+                        login
+                        name
+                      }
+                      state
+                      head {
+                       oid
+                      }
+                      submittedAt
+                      url
+                    }
+                  }
+                }
               }
             }
           }
@@ -75,30 +91,40 @@ defmodule RcAuditor.Github do
 
   def annotate_pull_request(ticket, ghmap) do
     key = ticket["key"]
-    Map.put ticket, "PR", RcAuditor.GithubPRMap.get(ghmap, key)
-    ticket
+    #Map.put ticket, "PR", RcAuditor.GithubPRMap.get(ghmap, key)
+    Map.put ticket, "gh_approval", approval(RcAuditor.GithubPRMap.get(ghmap, key))
+  end
+
+  def approval(pr) do
+    # merged_sha = pr["headRef"]["target"]["oid"]
+    # IO.puts :stderr, "Merged sha=#{merged_sha} #{inspect(pr, pretty: true)}"
+    IO.puts :stderr, "APPROVAL: " <> pr["title"] <> inspect(pr["reviews"])
+    pr["reviews"]["edges"]
+    |> Stream.map(fn rvw -> IO.puts(:stderr, "RVW:" <> inspect(rvw, pretty: true)); rvw end)
+    |> Stream.map(fn node -> node["node"] end)
+    # |> Stream.filter(fn rvw -> rvw["head"]["oid"]==merged_sha end)
+    |> Stream.map(fn rvw -> %Approval{stage: "GH",
+                              approver: rvw["author"]["name"],
+                              approved_at: rvw["submittedAt"],
+                              link: rvw["url"]}
+                  end)
+    |> Enum.to_list
   end
 
   def pull_requests(repo_owner, repo_name, cursor) do
     vars = pr_vars(repo_owner, repo_name, cursor)
     query = pr_query(repo_owner, repo_name)
-    page = graphql_query( query, vars).body["data"]
+    raw = graphql_query( query, vars).body
+    IO.puts :stderr, inspect(raw, pretty: true)
+    page = raw["data"]
     new_cursor = page["repository"]["pullRequests"]["pageInfo"]["startCursor"]
+
     prs = Enum.map(page["repository"]["pullRequests"]["edges"],&(&1["node"]))
     {prs, new_cursor}
   end
 
   def pr_vars(repo_owner, repo_name, nil),do: %{repo_owner: repo_owner, repo_name: repo_name}
   def pr_vars(repo_owner, repo_name, cursor),do: %{repo_owner: repo_owner, repo_name: repo_name, cursor: cursor}
-
-  defp fetch_with_cursor(cursor) do
-    page = graphql_query( cursor.query, cursor.vars).body["data"]
-    new_cursor = %{cursor | vars: cursor.new_vars.(page, cursor.vars) }
-    IO.puts "OLD: " <> inspect(cursor)
-    IO.puts "NEW: " <> inspect(new_cursor)
-    IO.puts "NEW: " <> inspect(page["repository"]["pullRequests"]["pageInfo"])
-    { cursor.items_fn.(page), new_cursor }
-  end
 
   def graphql_query(query, vars \\ nil) do
     post_body = query |> to_post_struct(vars) |> Poison.encode!
