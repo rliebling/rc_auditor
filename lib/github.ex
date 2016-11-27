@@ -98,9 +98,9 @@ defmodule RcAuditor.Github do
   def approval(pr) do
     # merged_sha = pr["headRef"]["target"]["oid"]
     # IO.puts :stderr, "Merged sha=#{merged_sha} #{inspect(pr, pretty: true)}"
-    IO.puts :stderr, "APPROVAL: " <> pr["title"] <> inspect(pr["reviews"])
+    # IO.puts :stderr, "APPROVAL: " <> pr["title"] <> inspect(pr["reviews"])
     pr["reviews"]["edges"]
-    |> Stream.map(fn rvw -> IO.puts(:stderr, "RVW:" <> inspect(rvw, pretty: true)); rvw end)
+    # |> Stream.map(fn rvw -> IO.puts(:stderr, "RVW:" <> inspect(rvw, pretty: true)); rvw end)
     |> Stream.map(fn node -> node["node"] end)
     # |> Stream.filter(fn rvw -> rvw["head"]["oid"]==merged_sha end)
     |> Stream.map(fn rvw -> %Approval{stage: "GH",
