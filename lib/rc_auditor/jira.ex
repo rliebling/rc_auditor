@@ -15,14 +15,14 @@ defmodule RcAuditor.Jira do
   end
 
   defp approval( %{"changelog" => %{ "histories" => histories}}, label, filter) do
-    h = histories
-        |> Enum.filter(fn h->
-                         h["items"]
-                         |> Enum.any?(filter)
-                       end)
-        |> Enum.map(fn a-> %Approval{stage: label, approver: a["author"]["displayName"],
-                                     approved_at: a["created"]}
-                    end)
+    histories
+    |> Enum.filter(fn h->
+                     h["items"]
+                     |> Enum.any?(filter)
+                   end)
+    |> Enum.map(fn a-> %Approval{stage: label, approver: a["author"]["displayName"],
+                                 approved_at: a["created"]}
+                end)
   end
 
   def is_qa_approval?(%{"field"=>"status", "toString"=>"Approved for RC"}) do
