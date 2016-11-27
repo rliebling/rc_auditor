@@ -16,11 +16,12 @@ defmodule RcAuditor.CLI do
     System.halt(0)
   end
   def process({rc_ticket_id, repo_owner, repo_name}) do
+    {:ok, ghmap} = RcAuditor.GithubPRMap.start_link(repo_owner, repo_name)
     RcAuditor.Jira.fetch(rc_ticket_id)
     |> RcAuditor.Jira.child_tickets
     |> Stream.map(&RcAuditor.Jira.annotate_qa_approval/1)
     |> Stream.map(&RcAuditor.Jira.annotate_cr_approval/1)
-    |> Stream.map(&(RcAuditor.Github.annotate_pull_request(&1, repo_owner, repo_name)))
+    |> Stream.map(&(RcAuditor.Github.annotate_pull_request(&1, ghmap)))
     |> Stream.map(&presentation/1)
     |> Enum.to_list
     |> inspect(pretty: true)
