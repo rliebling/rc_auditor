@@ -19,14 +19,13 @@ defmodule RcAuditor.CLI do
     {:ok, ghmap} = RcAuditor.GithubPRMap.start_link(repo_owner, repo_name)
     RcAuditor.Jira.fetch(rc_ticket_id)
     |> RcAuditor.Jira.child_tickets
-    |> Stream.map(fn t->IO.puts(:stderr, t["key"]); t end)
+#|> Stream.map(fn t->IO.puts(:stderr, t["key"]); t end)
     |> Stream.filter(fn t-> same_project?(t["key"], rc_ticket_id) end)
     |> Stream.map(&RcAuditor.Jira.annotate_qa_approval/1)
     |> Stream.map(&RcAuditor.Jira.annotate_cr_approval/1)
     |> Stream.map(&(RcAuditor.Github.annotate_pull_request(&1, ghmap)))
     |> Stream.map(&presentation/1)
-    |> Enum.to_list
-    |> inspect(pretty: true)
+    |> Enum.join("\n")
     |> IO.puts
   end
 
@@ -34,16 +33,23 @@ defmodule RcAuditor.CLI do
     Regex.run(~r/[A-Z]+-/, key1) == Regex.run(~r/[A-Z]+-/, key2)
   end
 
+### API-1211 Patron ID must be unique, cannot edit patron info
+#Review Type | Reviewed By | Reviewed At|
+#:------| :----|:-----------:|:------------|-----------:|
+#Code/J| Andrea Sprega| 2016-11-10T03:45:12.366-0800
+#QA/J        | Giuseppe Bruno| 2016-11-10T06:21:29.020-0800
   defp presentation(t) do
-    [
-      t["key"],
-      RcAuditor.Jira.status_name(t),
-      RcAuditor.Jira.summary(t),
-      t["cr_approval"],
-      t["qa_approval"],
-      t["gh_approval"]
-    ]
+    "## " <> t["key"] <> ": " <> RcAuditor.Jira.summary(t)
+    ~s'''
+## #{t["key"]}: #{RcAuditor.Jira.summary(t)}
+Review Type | Reviewed By | Reviewed At|
+:------| :----|:-----------:|:------------|-----------:|
+#{Approval.to_md(t["cr_approval"], "Code/J")}
+#{Approval.to_md(t["gh_approval"], "Code/GH")}
+#{Approval.to_md(t["qa_approval"], "QA")}
+  '''
   end
+
 
   @doc """
   `argv` can be -h or --help, which returns :help.
