@@ -16,7 +16,7 @@ defmodule RcAuditor.GithubPRMap do
   Gets a PR by key
   """
   def get(ghmap, key) do
-    Agent.get_and_update(ghmap, &find_with_caching(&1, key))
+    Agent.get_and_update(ghmap, &find_with_caching(&1, key), 15000)
   end
 
   defp find_with_caching(state, key) do
