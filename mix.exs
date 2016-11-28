@@ -28,7 +28,8 @@ defmodule RcAuditor.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:jira, git: "https://github.com/jeffweiss/jira", tag: "0.0.8"}
+      {:jira, git: "https://github.com/jeffweiss/jira", tag: "0.0.8"},
+      {:earmark, git: "https://github.com/pragdave/earmark", tag: "v1.0.3"}
     ]
   end
 end
