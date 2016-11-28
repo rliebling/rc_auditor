@@ -63,6 +63,7 @@ defmodule RcAuditor.CLI do
 
 | Action | By    |    At   | Valid? |
 | :----  | :---  | :------ | :---:  |
+#{Approval.to_md(t["developer"], "Jira Dev")}
 #{Approval.to_md(t["cr_approval"], "Jira CR")}
 #{Approval.to_md(t["gh_approval"], "Github CR")}
 #{Approval.to_md(t["qa_approval"], "QA")}

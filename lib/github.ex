@@ -91,10 +91,23 @@ defmodule RcAuditor.Github do
 
   def annotate_pull_request(ticket, ghmap) do
     key = ticket["key"]
-    #Map.put ticket, "PR", RcAuditor.GithubPRMap.get(ghmap, key)
-    Map.put ticket, "gh_approval", approval(RcAuditor.GithubPRMap.get(ghmap, key))
+    pr = RcAuditor.GithubPRMap.get(ghmap, key)
+    ticket
+    |> Map.put("gh_approval", approval(pr))
+    |> Map.put("pr_author", pr_author(pr))
   end
 
+  def pr_author(nil), do: nil
+  def pr_author(pr) do
+    IO.puts :stderr, "PR_AUTHOR: " <> inspect(pr, pretty: true)
+    case get_in(pr, ["author", "name"]) do
+      nil -> get_in(pr, ["author", "login"])
+      "" -> get_in(pr, ["author", "login"])
+      name -> name
+    end
+  end
+
+  def approval(nil), do: [%Approval{}]
   def approval(pr) do
     # merged_sha = pr["headRef"]["target"]["oid"]
     # IO.puts :stderr, "Merged sha=#{merged_sha} #{inspect(pr, pretty: true)}"
@@ -104,8 +117,9 @@ defmodule RcAuditor.Github do
     |> Stream.map(fn node -> node["node"] end)
     # |> Stream.filter(fn rvw -> rvw["head"]["oid"]==merged_sha end)
     |> Stream.map(fn rvw -> %Approval{stage: "GH",
-                              approver: rvw["author"]["name"],
+                              approver: get_in(rvw, ["author", "name"]) || get_in(rvw, ["author", "login"]),
                               approved_at: rvw["submittedAt"],
+                              approved_for: pr_author(pr),
                               link: rvw["url"]}
                   end)
     |> Enum.to_list

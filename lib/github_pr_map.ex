@@ -21,13 +21,17 @@ defmodule RcAuditor.GithubPRMap do
 
   defp find_with_caching(state, key) do
     case Map.get(state.map, key) do
-      nil -> new_state = fetch_next_page(state, key); find_with_caching(new_state, key)
+      nil -> case fetch_next_page(state, key) do
+        {:ok, new_state} -> find_with_caching(new_state, key)
+        {:halt, new_state} -> {nil, new_state}
+      end 
       cached_result -> {cached_result, state}
     end
   end
 
   defp fetch_next_page(%{cursor: :halt}=state, key) do
-    raise "No more PRs to fetch.  #{key} not found"
+    # "No more PRs to fetch.  #{key} not found"
+    {:halt, state}
   end
   defp fetch_next_page(state, key) do
     IO.puts :stderr, "PRMap: fetching a page cursor=#{inspect(state.cursor)}"
@@ -45,7 +49,7 @@ defmodule RcAuditor.GithubPRMap do
       nil -> :halt
       x -> x
     end
-    %{state | map: new_map, cursor: new_cursor}
+    {:ok, %{state | map: new_map, cursor: new_cursor}}
   end
 
   def jira_key_from_title(title) do

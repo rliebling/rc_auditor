@@ -14,16 +14,33 @@ defmodule RcAuditor.Jira do
     |> Stream.map( fn k -> fetch(k, :changelog) end)
   end
 
-  defp approval( %{"changelog" => %{ "histories" => histories}}, label, filter) do
+  defp approval( %{"changelog" => %{ "histories" => histories}}=ticket, label, filter) do
     histories
     |> Enum.filter(fn h->
                      h["items"]
                      |> Enum.any?(filter)
                    end)
-    |> Enum.map(fn a-> %Approval{stage: label, approver: a["author"]["displayName"],
-                                 approved_at: a["created"]}
+    |> Enum.map(fn a-> %Approval{stage: label,
+                                 approver: a["author"]["displayName"],
+                                 approved_at: a["created"],
+                                 approved_for: developer(ticket)}
                 end)
   end
+
+  def developer(%{"changelog" => %{ "histories" => histories}}) do
+    histories
+    |> Enum.filter(fn h->
+                     h["items"]
+                     |> Enum.any?(&submitted_to_code_review?/1)
+                   end)
+    |> Enum.map(fn d -> get_in(d, ["author", "displayName"]) end)
+    |> Enum.at(-1)
+  end
+
+  def submitted_to_code_review?(%{"field"=>"status", "toString"=>"In Code Review"}) do
+    true
+  end
+  def submitted_to_code_review?(_), do: false
 
   def is_qa_approval?(%{"field"=>"status", "toString"=>"Approved for RC"}) do
     true
@@ -41,6 +58,9 @@ defmodule RcAuditor.Jira do
     get_in(t, ["fields","summary"])
   end
 
+  def annotate_developer(ticket) do
+    Map.put ticket, "developer", approval(ticket, "Dev", &submitted_to_code_review?/1)
+  end
   def annotate_qa_approval(ticket) do
     Map.put ticket, "qa_approval", approval(ticket, "QA", &is_qa_approval?/1)
   end
